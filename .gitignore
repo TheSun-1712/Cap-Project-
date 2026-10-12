@@ -1,0 +1,55 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Virtual Environments
+.venv/
+venv/
+ENV/
+env/
+env.bak/
+venv.bak/
+
+# Datasets and Large Archives
+datasets/
+*.zip
+*.tar
+*.tar.gz
+*.tgz
+*.7z
+*.rar
+
+# Model Checkpoints, Weights and Engine Dumps
+*.pt
+*.pth
+*.ckpt
+*.onnx
+*.bin
+*.engine
+lightning_logs/
+
+# Heavy Generated Image Dumps, Model Artifacts & Visual Overlays
+results/*
+!results/
+!results/*.json
+!results/*.md
+
+# Experiment Tracking & Logs
+wandb/
+runs/
+*.log
+
+# IDE & Editor Files
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Operating System Files
+.DS_Store
+Thumbs.db
+ehthumbs.db
+desktop.ini
+$RECYCLE.BIN/

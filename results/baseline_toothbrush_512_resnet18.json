@@ -1,0 +1,20 @@
+{
+  "category": "toothbrush",
+  "resolution": 512,
+  "backbone": "resnet18",
+  "coreset_ratio": 0.001,
+  "train_batch_size": 8,
+  "eval_batch_size": 8,
+  "train_duration_sec": 95.84468340873718,
+  "test_duration_sec": 147.92536306381226,
+  "total_duration_sec": 244.27049946784973,
+  "peak_vram_gb": 10.47460352,
+  "metrics": [
+    {
+      "image_AUROC": 0.853407084941864,
+      "image_F1Score": 0.8196958899497986,
+      "pixel_AUROC": 0.9159152507781982,
+      "pixel_F1Score": 0.3473729193210602
+    }
+  ]
+}

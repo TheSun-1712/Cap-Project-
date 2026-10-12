@@ -1,0 +1,35 @@
+{
+  "category": "toothbrush",
+  "json_path": "datasets\\Real-IAD\\realiad_jsons\\realiad_jsons\\toothbrush.json",
+  "train_samples": 1225,
+  "train_class_counts": {
+    "OK": 1225
+  },
+  "test_samples": 3780,
+  "test_class_counts": {
+    "NG": 2027,
+    "OK": 1753
+  },
+  "unique_parts": 508,
+  "views_per_sample": {
+    "5": 508
+  },
+  "viewpoint_counts": {
+    "C1": 1001,
+    "C2": 1001,
+    "C3": 1001,
+    "C4": 1001,
+    "C5": 1001
+  },
+  "defect_types": {
+    "CH": 842,
+    "QS": 474,
+    "ZW": 711
+  },
+  "area_distribution": {
+    "micro (<0.1%)": 74,
+    "medium (0.1%-1.0%)": 1253,
+    "large (>1.0%)": 700,
+    "total_masks_analyzed": 2027
+  }
+}

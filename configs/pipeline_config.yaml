@@ -1,0 +1,39 @@
+# Configuration for PatchCore Baseline and Multi-View Evaluation
+dataset:
+  name: Real-IAD
+  category: toothbrush
+  root: ./datasets/Real-IAD
+  resolution: 512
+  train_batch_size: 4
+  eval_batch_size: 4
+  num_workers: 0 # Windows stability
+
+model:
+  name: patchcore
+  backbone: wide_resnet50_2
+  layers:
+    - layer2
+    - layer3
+  coreset_sampling_ratio: 0.1
+  num_neighbors: 9
+
+engine:
+  default_root_dir: ./results
+  accelerator: auto
+  devices: 1
+
+tiling:
+  image_size: 1024
+  tile_size: 512
+  stride: 384
+  target_fpr: 0.05
+
+multiview:
+  viewpoints:
+    - C1
+    - C2
+    - C3
+    - C4
+    - C5
+  decision_rule: max_score
+  target_frr: 0.05
