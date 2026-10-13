@@ -162,9 +162,10 @@ class ToothbrushInspector:
         peak_x: int,
         peak_y: int,
         crop_r: int = 70,
+        is_ood: bool = False,
     ) -> Optional[np.ndarray]:
         """Align defect coordinates to matching anatomical region in Golden Standard reference."""
-        if ref_img is None:
+        if ref_img is None or is_ood:
             return None
 
         # Detect object bounding boxes
@@ -178,6 +179,12 @@ class ToothbrushInspector:
 
         if bw_i == 0 or bh_i == 0 or bw_r == 0 or bh_r == 0:
             return None
+
+        # Check aspect ratio compatibility: if framing is completely different (e.g. macro shot vs full toothbrush)
+        ratio_i = bw_i / (bh_i + 1e-5)
+        ratio_r = bw_r / (bh_r + 1e-5)
+        if ratio_i > 2.5 * ratio_r or ratio_r > 2.5 * ratio_i:
+            return None  # Framing does not match reference part setup
 
         # Relative coordinate within part
         rel_x = (peak_x - bx_i) / bw_i
@@ -206,13 +213,18 @@ class ToothbrushInspector:
         anomaly_score: float,
         threshold: float,
         ref_img: Optional[np.ndarray] = None,
+        is_ood: bool = False,
+        coverage_pct: float = 0.0,
     ) -> Tuple[np.ndarray, Optional[np.ndarray], Optional[np.ndarray]]:
-        """Render high-contrast, human-understandable operator inspection HUD."""
+        """Render high-contrast, human-understandable operator inspection HUD with resolution-adaptive scaling."""
         h, w = img_rgb.shape[:2]
         out_bgr = cv2.cvtColor(img_rgb, cv2.COLOR_RGB2BGR)
 
+        # Resolution adaptive scale factor
+        scale = max(1.0, max(w, h) / 1024.0)
+
         # Header canvas (Dark Slate HUD)
-        header_h = 100
+        header_h = int(100 * scale)
         canvas = np.zeros((h + header_h, w, 3), dtype=np.uint8)
         canvas[:header_h, :] = (15, 23, 42)  # Dark slate
         canvas[header_h:, :] = out_bgr
@@ -220,26 +232,32 @@ class ToothbrushInspector:
         # Status badge colors (BGR)
         primary_color = (68, 68, 239) if is_fail else (34, 197, 94)  # Crimson or Emerald
         status_text = "REJECT / DEFECT DETECTED" if is_fail else "PASS / ZERO DEFECTS"
+        if is_ood:
+            status_text = "REJECT / UNTRAINED OBJECT"
 
         # HUD Header Title
-        cv2.putText(canvas, f"AUTOMATED OPTICAL INSPECTION - {sample_id} ({view})", (24, 38),
-                    cv2.FONT_HERSHEY_DUPLEX, 0.85, (241, 245, 249), 2, cv2.LINE_AA)
+        title_font_scale = 0.85 * scale
+        cv2.putText(canvas, f"AUTOMATED OPTICAL INSPECTION - {sample_id} ({view})", (int(24 * scale), int(38 * scale)),
+                    cv2.FONT_HERSHEY_DUPLEX, title_font_scale, (241, 245, 249), max(1, int(2 * scale)), cv2.LINE_AA)
 
         # Status Pill Badge
-        pill_w, pill_h = 360, 44
-        pill_x, pill_y = max(10, w - pill_w - 24), 28
+        pill_w, pill_h = int(380 * scale), int(46 * scale)
+        pill_x, pill_y = max(10, w - pill_w - int(24 * scale)), int(28 * scale)
         cv2.rectangle(canvas, (pill_x, pill_y), (pill_x + pill_w, pill_y + pill_h), primary_color, -1)
-        cv2.putText(canvas, status_text, (pill_x + 16, pill_y + 30),
-                    cv2.FONT_HERSHEY_DUPLEX, 0.68, (255, 255, 255), 2, cv2.LINE_AA)
+        cv2.putText(canvas, status_text, (pill_x + int(16 * scale), pill_y + int(32 * scale)),
+                    cv2.FONT_HERSHEY_DUPLEX, 0.68 * scale, (255, 255, 255), max(1, int(2 * scale)), cv2.LINE_AA)
 
         # Subtitle info
-        info_text = (
-            f"Defect: {defect_type} | Score: {anomaly_score:.3f} (Limit: {threshold:.3f}) | Flaws localized: {len(defects)}"
-            if is_fail
-            else f"Score: {anomaly_score:.3f} (Limit: {threshold:.3f}) | Specification 100% Met: Surface & Bristles Intact"
-        )
-        cv2.putText(canvas, info_text, (24, 76),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.62, (148, 163, 184), 1, cv2.LINE_AA)
+        if is_ood:
+            flaw_px_count = defects[0]['area_pixels'] if defects else 0
+            info_text = f"DOMAIN ALERT: {coverage_pct:.1f}% of frame anomalous ({flaw_px_count:,} px) | Extreme macro or uncalibrated color scheme."
+        elif is_fail:
+            info_text = f"Defect: {defect_type} | Score: {anomaly_score:.3f} (Limit: {threshold:.3f}) | Flaws localized: {len(defects)}"
+        else:
+            info_text = f"Score: {anomaly_score:.3f} (Limit: {threshold:.3f}) | Specification 100% Met: Surface & Bristles Intact"
+
+        cv2.putText(canvas, info_text, (int(24 * scale), int(76 * scale)),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.58 * scale, (148, 163, 184), max(1, int(1.5 * scale)), cv2.LINE_AA)
 
         magnified_defect_rgb = None
         magnified_ref_rgb = None
@@ -252,12 +270,12 @@ class ToothbrushInspector:
             c_dy = dy + header_h
 
             # A. Target Bracket Reticle around flaw
-            pad = 20
+            pad = int(24 * scale)
             rx1, ry1 = max(0, dx - pad), max(header_h, c_dy - pad)
             rx2, ry2 = min(w - 1, dx + dw + pad), min(h + header_h - 1, c_dy + dh + pad)
 
-            bracket_len = 22
-            thick = 3
+            bracket_len = int(26 * scale)
+            thick = max(2, int(3 * scale))
             glow_color = (0, 0, 255)  # Bright Red
 
             # Corners
@@ -271,76 +289,81 @@ class ToothbrushInspector:
             cv2.line(canvas, (rx2, ry2), (rx2 - bracket_len, ry2), glow_color, thick)
 
             # Center target crosshair
-            cv2.circle(canvas, (px, c_py), 8, (0, 255, 255), 2)
-            cv2.drawMarker(canvas, (px, c_py), (0, 255, 255), cv2.MARKER_CROSS, 20, 2)
+            crosshair_r = int(10 * scale)
+            cv2.circle(canvas, (px, c_py), crosshair_r, (0, 255, 255), max(1, int(2 * scale)))
+            cv2.drawMarker(canvas, (px, c_py), (0, 255, 255), cv2.MARKER_CROSS, int(24 * scale), max(1, int(2 * scale)))
 
             # B. Leader Line & Floating Callout Card
-            callout_x = min(w - 400, max(40, rx2 + 70)) if px < w // 2 else max(40, rx1 - 420)
-            callout_y = max(header_h + 40, min(h + header_h - 170, c_py - 40))
+            card_w, card_h = int(420 * scale), int(125 * scale)
+            callout_x = min(w - card_w - int(20 * scale), max(int(20 * scale), rx2 + int(70 * scale))) if px < w // 2 else max(int(20 * scale), rx1 - card_w - int(30 * scale))
+            callout_y = max(header_h + int(30 * scale), min(h + header_h - card_h - int(30 * scale), c_py - int(40 * scale)))
 
-            elbow_x = rx2 + 35 if px < w // 2 else rx1 - 35
+            elbow_x = rx2 + int(35 * scale) if px < w // 2 else rx1 - int(35 * scale)
             reticle_anchor = (rx2, c_py) if px < w // 2 else (rx1, c_py)
-            card_anchor = (callout_x, callout_y + 40) if px < w // 2 else (callout_x + 380, callout_y + 40)
+            card_anchor = (callout_x, callout_y + int(40 * scale)) if px < w // 2 else (callout_x + card_w, callout_y + int(40 * scale))
 
-            cv2.line(canvas, reticle_anchor, (elbow_x, c_py), (0, 255, 255), 2)
-            cv2.line(canvas, (elbow_x, c_py), card_anchor, (0, 255, 255), 2)
-            cv2.circle(canvas, reticle_anchor, 5, (0, 255, 255), -1)
+            cv2.line(canvas, reticle_anchor, (elbow_x, c_py), (0, 255, 255), max(1, int(2 * scale)))
+            cv2.line(canvas, (elbow_x, c_py), card_anchor, (0, 255, 255), max(1, int(2 * scale)))
+            cv2.circle(canvas, reticle_anchor, int(5 * scale), (0, 255, 255), -1)
 
             # Floating Card
-            card_w, card_h = 390, 115
             cv2.rectangle(canvas, (callout_x, callout_y), (callout_x + card_w, callout_y + card_h), (15, 23, 42), -1)
-            cv2.rectangle(canvas, (callout_x, callout_y), (callout_x + card_w, callout_y + card_h), (239, 68, 68), 2)
+            cv2.rectangle(canvas, (callout_x, callout_y), (callout_x + card_w, callout_y + card_h), (239, 68, 68), max(1, int(2 * scale)))
 
-            cv2.putText(canvas, f"[!] DEFECT: {defect_type}", (callout_x + 14, callout_y + 32),
-                        cv2.FONT_HERSHEY_DUPLEX, 0.65, (248, 250, 252), 1, cv2.LINE_AA)
-            cv2.putText(canvas, f"Discrepancy Size: {primary_defect['area_pixels']} px", (callout_x + 14, callout_y + 64),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.58, (226, 232, 240), 1, cv2.LINE_AA)
-            cv2.putText(canvas, f"Pinpoint Target: X={px}, Y={py}", (callout_x + 14, callout_y + 95),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.58, (251, 191, 36), 1, cv2.LINE_AA)
+            card_font = 0.58 * scale
+            cv2.putText(canvas, f"[!] DEFECT: {defect_type[:32]}", (callout_x + int(14 * scale), callout_y + int(32 * scale)),
+                        cv2.FONT_HERSHEY_DUPLEX, card_font, (248, 250, 252), max(1, int(1.5 * scale)), cv2.LINE_AA)
+            cv2.putText(canvas, f"Discrepancy Size: {primary_defect['area_pixels']:,} px", (callout_x + int(14 * scale), callout_y + int(66 * scale)),
+                        cv2.FONT_HERSHEY_SIMPLEX, card_font * 0.9, (226, 232, 240), max(1, int(1.5 * scale)), cv2.LINE_AA)
+            cv2.putText(canvas, f"Pinpoint Target: X={px}, Y={py}", (callout_x + int(14 * scale), callout_y + int(100 * scale)),
+                        cv2.FONT_HERSHEY_SIMPLEX, card_font * 0.9, (251, 191, 36), max(1, int(1.5 * scale)), cv2.LINE_AA)
 
             # C. 5x Microscope Close-up Inset
-            crop_r = 75
+            crop_r = int(80 * scale)
             cy1, cy2 = max(0, py - crop_r), min(h, py + crop_r)
             cx1, cx2 = max(0, px - crop_r), min(w, px + crop_r)
             defect_crop_bgr = out_bgr[cy1:cy2, cx1:cx2].copy()
 
-            # Reference crop
-            ref_bgr = cv2.cvtColor(ref_img, cv2.COLOR_RGB2BGR) if ref_img is not None else None
-            reference_crop_bgr = self.get_anatomical_reference_crop(img_rgb, ref_img, px, py, crop_r=crop_r)
-            if reference_crop_bgr is not None:
-                reference_crop_bgr = cv2.cvtColor(reference_crop_bgr, cv2.COLOR_RGB2BGR)
+            # Reference crop (only if not OOD and aligned)
+            reference_crop_bgr = None
+            if not is_ood:
+                reference_crop_bgr = self.get_anatomical_reference_crop(img_rgb, ref_img, px, py, crop_r=int(75 * scale), is_ood=is_ood)
+                if reference_crop_bgr is not None:
+                    reference_crop_bgr = cv2.cvtColor(reference_crop_bgr, cv2.COLOR_RGB2BGR)
 
             if defect_crop_bgr.size > 0:
-                inset_size = 220
+                inset_size = int(220 * scale)
                 magnified_defect_bgr = cv2.resize(defect_crop_bgr, (inset_size, inset_size), interpolation=cv2.INTER_CUBIC)
                 magnified_defect_rgb = cv2.cvtColor(magnified_defect_bgr, cv2.COLOR_BGR2RGB)
 
                 # PIP placement
-                inset_x = 30
-                inset_y = h + header_h - inset_size - 60 if py < h // 2 else header_h + 30
+                inset_x = int(30 * scale)
+                inset_y = h + header_h - inset_size - int(60 * scale) if py < h // 2 else header_h + int(30 * scale)
 
-                panel_w = (inset_size * 2 + 50) if reference_crop_bgr is not None else (inset_size + 30)
-                cv2.rectangle(canvas, (inset_x - 12, inset_y - 48), (inset_x + panel_w, inset_y + inset_size + 50), (15, 23, 42), -1)
-                cv2.rectangle(canvas, (inset_x - 12, inset_y - 48), (inset_x + panel_w, inset_y + inset_size + 50), (51, 65, 85), 2)
+                panel_w = (inset_size * 2 + int(50 * scale)) if reference_crop_bgr is not None else (inset_size + int(30 * scale))
+                cv2.rectangle(canvas, (inset_x - int(12 * scale), inset_y - int(48 * scale)),
+                              (inset_x + panel_w, inset_y + inset_size + int(50 * scale)), (15, 23, 42), -1)
+                cv2.rectangle(canvas, (inset_x - int(12 * scale), inset_y - int(48 * scale)),
+                              (inset_x + panel_w, inset_y + inset_size + int(50 * scale)), (51, 65, 85), max(1, int(2 * scale)))
 
-                cv2.putText(canvas, "MICROSCOPIC CLOSE-UP COMPARISON (5x ENLARGEMENT)", (inset_x, inset_y - 18),
-                            cv2.FONT_HERSHEY_DUPLEX, 0.58, (56, 189, 248), 1, cv2.LINE_AA)
+                cv2.putText(canvas, "MICROSCOPIC CLOSE-UP COMPARISON (5x ENLARGEMENT)", (inset_x, inset_y - int(18 * scale)),
+                            cv2.FONT_HERSHEY_DUPLEX, 0.54 * scale, (56, 189, 248), max(1, int(1.5 * scale)), cv2.LINE_AA)
 
                 # Left Box: Defective Region
                 canvas[inset_y:inset_y + inset_size, inset_x:inset_x + inset_size] = magnified_defect_bgr
-                cv2.rectangle(canvas, (inset_x, inset_y), (inset_x + inset_size, inset_y + inset_size), (239, 68, 68), 3)
-                cv2.putText(canvas, "THIS PART (DEFECTIVE)", (inset_x + 10, inset_y + inset_size + 24),
-                            cv2.FONT_HERSHEY_DUPLEX, 0.50, (239, 68, 68), 1, cv2.LINE_AA)
+                cv2.rectangle(canvas, (inset_x, inset_y), (inset_x + inset_size, inset_y + inset_size), (239, 68, 68), max(1, int(3 * scale)))
+                cv2.putText(canvas, "THIS PART (DEFECTIVE)", (inset_x + int(10 * scale), inset_y + inset_size + int(24 * scale)),
+                            cv2.FONT_HERSHEY_DUPLEX, 0.48 * scale, (239, 68, 68), max(1, int(1.5 * scale)), cv2.LINE_AA)
 
                 # Right Box: Golden Standard (Normal)
                 if reference_crop_bgr is not None:
                     ref_resized_bgr = cv2.resize(reference_crop_bgr, (inset_size, inset_size), interpolation=cv2.INTER_CUBIC)
                     magnified_ref_rgb = cv2.cvtColor(ref_resized_bgr, cv2.COLOR_BGR2RGB)
-                    ref_x = inset_x + inset_size + 24
+                    ref_x = inset_x + inset_size + int(24 * scale)
                     canvas[inset_y:inset_y + inset_size, ref_x:ref_x + inset_size] = ref_resized_bgr
-                    cv2.rectangle(canvas, (ref_x, inset_y), (ref_x + inset_size, inset_y + inset_size), (34, 197, 94), 3)
-                    cv2.putText(canvas, "GOLDEN STANDARD (NORMAL)", (ref_x + 10, inset_y + inset_size + 24),
-                                cv2.FONT_HERSHEY_DUPLEX, 0.50, (34, 197, 94), 1, cv2.LINE_AA)
+                    cv2.rectangle(canvas, (ref_x, inset_y), (ref_x + inset_size, inset_y + inset_size), (34, 197, 94), max(1, int(3 * scale)))
+                    cv2.putText(canvas, "GOLDEN STANDARD (NORMAL)", (ref_x + int(10 * scale), inset_y + inset_size + int(24 * scale)),
+                                cv2.FONT_HERSHEY_DUPLEX, 0.48 * scale, (34, 197, 94), max(1, int(1.5 * scale)), cv2.LINE_AA)
 
         hud_rgb = cv2.cvtColor(canvas, cv2.COLOR_BGR2RGB)
         return hud_rgb, magnified_defect_rgb, magnified_ref_rgb
@@ -353,18 +376,7 @@ class ToothbrushInspector:
         view: Optional[str] = None,
         sample_name: Optional[str] = None,
     ) -> Dict:
-        """Run complete anomaly inspection on a single toothbrush image.
-
-        Args:
-            image_input: File path, numpy array (RGB or BGR), or PIL Image.
-            threshold: Inspection decision threshold (defaults to calibrated 0.530).
-            min_area: Minimum defect area in pixels to filter sensor noise.
-            view: Camera viewpoint ('C1' to 'C5'). Auto-detected if None.
-            sample_name: Label for display HUD.
-
-        Returns:
-            Inspection result dictionary with images, metrics, and verdicts.
-        """
+        """Run complete anomaly inspection on a single toothbrush image."""
         start_time = time.time()
         thr = threshold if threshold is not None else self.threshold
 
@@ -416,10 +428,18 @@ class ToothbrushInspector:
         # Connected component defect extraction
         defects = self.extract_micro_defects(anomaly_map_resized, threshold=thr, min_area=min_area) if is_fail else []
 
-        # Classify defect type guess based on viewpoint & coordinate
+        # Out-of-Distribution (OOD) Domain Mismatch Detection:
+        total_pixels = orig_w * orig_h
+        flaw_area = defects[0]["area_pixels"] if defects else 0
+        coverage_pct = (flaw_area / total_pixels) * 100.0 if total_pixels > 0 else 0
+        is_ood = coverage_pct > 35.0 or (flaw_area > 800000 and coverage_pct > 20.0)
+
+        # Classify defect type
         defect_type_guess = "Normal Spec"
         if is_fail:
-            if len(defects) > 0:
+            if is_ood:
+                defect_type_guess = "Untrained Model / Macro Scale"
+            elif len(defects) > 0:
                 pk_y = defects[0]["peak"][1]
                 if view in ["C1", "C2"] and pk_y < orig_h * 0.45:
                     defect_type_guess = "Missing Bristle Tuft"
@@ -455,6 +475,8 @@ class ToothbrushInspector:
             anomaly_score=anomaly_score,
             threshold=thr,
             ref_img=ref_img_rgb,
+            is_ood=is_ood,
+            coverage_pct=coverage_pct,
         )
 
         latency_ms = (time.time() - start_time) * 1000.0
@@ -462,6 +484,8 @@ class ToothbrushInspector:
         return {
             "verdict": verdict,
             "is_fail": is_fail,
+            "is_ood": is_ood,
+            "coverage_pct": coverage_pct,
             "anomaly_score": anomaly_score,
             "threshold": thr,
             "confidence_pct": min(100.0, max(0.0, (anomaly_score / thr) * 50.0 if not is_fail else 50.0 + (anomaly_score - thr) / (1.0 - thr + 1e-6) * 50.0)),
@@ -480,3 +504,4 @@ class ToothbrushInspector:
             "microscope_ref_crop": mag_ref_rgb,
             "anomaly_map_raw": anomaly_map_resized,
         }
+

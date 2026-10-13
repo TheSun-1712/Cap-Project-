@@ -369,12 +369,34 @@ def main():
     defect_count = result["defect_count"]
     defect_type = result["defect_type"]
     primary_defect = result["primary_defect"]
+    is_ood = result.get("is_ood", False)
+    coverage_pct = result.get("coverage_pct", 0.0)
+
+    # ==========================
+    # DOMAIN MISMATCH WARNING (IF APPLICABLE)
+    # ==========================
+    if is_ood:
+        flaw_px = primary_defect['area_pixels'] if primary_defect else 0
+        st.markdown(f"""
+        <div style="background: rgba(245, 158, 11, 0.15); border: 2px solid #f59e0b; border-radius: 12px; padding: 18px 22px; margin-bottom: 20px; box-shadow: 0 0 25px rgba(245, 158, 11, 0.2);">
+            <div style="color: #f59e0b; font-size: 20px; font-weight: 800; display: flex; align-items: center; gap: 8px;">
+                <span>⚠️</span> DOMAIN & SCALE MISMATCH DETECTED ({coverage_pct:.1f}% OF FRAME ANOMALOUS)
+            </div>
+            <div style="color: #fde68a; font-size: 14px; margin-top: 8px; line-height: 1.5;">
+                Almost the entire image (<strong>{flaw_px:,} pixels</strong>) was flagged as anomalous.
+                <br>
+                <strong>Root Cause:</strong> The AI was trained on the <strong>Real-IAD industrial toothbrush</strong> (white body, standard camera distance). This photo is an <strong>extreme macro shot</strong> with a different color scheme (e.g., pink/electric-blue bristles), which the model has never seen.
+                <br><br>
+                👉 <strong>How to Fix:</strong> Frame the photo so the <em>entire toothbrush head & neck</em> are visible against a plain background (like the dataset), or lower the sensitivity slider below.
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
 
     # ==========================
     # HIGH-VISIBILITY VERDICT BANNER
     # ==========================
     if is_fail:
-        flaw_size_desc = f"{primary_defect['area_pixels']} px" if primary_defect else "localized"
+        flaw_size_desc = f"{primary_defect['area_pixels']:,} px" if primary_defect else "localized"
         st.markdown(f"""
         <div class="verdict-fail">
             <div class="verdict-title" style="color: #ef4444;">
@@ -382,7 +404,7 @@ def main():
             </div>
             <div class="verdict-desc" style="color: #fca5a5;">
                 Anomaly score of <strong>{score:.3f}</strong> exceeds threshold limit (<strong>{thr:.3f}</strong>).
-                Micro-discrepancy isolated: <strong>{defect_count} flaw region(s)</strong> detected (Primary flaw size: <strong>{flaw_size_desc}</strong>).
+                Flaw coverage: <strong>{coverage_pct:.1f}% of image</strong> (Primary flaw size: <strong>{flaw_size_desc}</strong>).
             </div>
         </div>
         """, unsafe_allow_html=True)
@@ -498,7 +520,7 @@ def main():
                     """.format(selected_view), unsafe_allow_html=True)
                     st.image(result["microscope_ref_crop"], use_container_width=True)
                 else:
-                    st.info("Reference crop could not be registered for this region.")
+                    st.info("ℹ️ **Golden Standard Reference Registration:** Cross-referencing against the certified Golden Standard is designed for parts matching the Real-IAD camera framing (full toothbrush). For extreme macro shots or different toothbrush designs, cross-referencing is disabled.")
 
             st.markdown("""
             > **Microscopic Interpretation:** The left window reveals the defect (e.g., missing bristle root void, scratch groove, or chemical discoloration) highlighted in high-contrast red. The right window shows the corresponding region on a certified defect-free toothbrush under the identical lighting and optical angle.
