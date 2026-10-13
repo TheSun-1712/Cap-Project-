@@ -1,0 +1,13 @@
+{
+  "category": "toothbrush",
+  "model_type": "Patchcore",
+  "backbone": "resnet18",
+  "resolution": 512,
+  "layers": ["layer2", "layer3"],
+  "coreset_ratio": 0.001,
+  "memory_bank_shape": [1254, 384],
+  "calibrated_threshold": 0.530,
+  "image_auroc": 0.8534,
+  "pixel_auroc": 0.9159,
+  "checkpoint_path": "weights/patchcore_toothbrush_512.ckpt"
+}

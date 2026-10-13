@@ -130,23 +130,46 @@ Generate synthetic scratches, dents, chips, and stains on normal pencil referenc
 python scripts/synthetic_defect_generator.py --input-dir datasets/pencils/normal --output-dir datasets/pencils/synthetic
 ```
 
+### Step 9: Launch Live Streamlit Inspection Dashboard (Web UI)
+Run the real-time operator inspection dashboard to upload custom toothbrush images or test presets with 5x Microscope Zoom:
+```powershell
+# Quick 1-click startup:
+.\run_dashboard.bat
+
+# Or via PowerShell:
+.\run_dashboard.ps1
+
+# Or via Streamlit directly:
+.\.venv\Scripts\streamlit.exe run app.py
+```
+Open **`http://localhost:8501`** in your browser.
+
 ---
 
 ## 4. Directory Structure
 ```
 Cap Project/
 ├── .venv/                      # Python 3.11 with PyTorch 2.11 cu128 (Blackwell sm_120)
+├── app.py                      # Interactive Streamlit Web Inspection Dashboard
+├── run_dashboard.bat           # 1-click Windows startup script
+├── run_dashboard.ps1           # 1-click PowerShell startup script
+├── weights/
+│   ├── patchcore_toothbrush_512.ckpt  # Pre-trained PatchCore memory bank checkpoint
+│   └── model_config.json              # Calibrated threshold & model metadata
 ├── configs/
 │   └── pipeline_config.yaml    # Hyperparameter & pipeline configuration
 ├── datasets/
 │   └── Real-IAD/               # Dataset root
 ├── results/
 │   ├── heatmaps/               # 4-panel inspection decision graphics
+│   ├── operator_pinpoint/      # Microscope & reticle inspection graphics
 │   ├── audit_summary.json      # Phase 1.4 data audit metrics
 │   ├── defect_size_vs_recall.png # Phase 3 tiny-defect study curve
 │   ├── multiview_comparison.png # Phase 4 single-view vs multi-view curve
 │   └── model_comparison_table.md # Phase 5 model comparison benchmark
 ├── scripts/
+│   ├── inference_engine.py     # High-speed GPU PatchCore inference pipeline
+│   ├── inspect_part.py         # Autonomous pinpoint & microscope generator
 │   ├── download_data.py        # Gated download, SHA256 check, unpack & downscaler
 │   ├── audit.py                # Data audit script
 │   ├── baseline.py             # PatchCore baseline & resolution ablation
@@ -157,3 +180,4 @@ Cap Project/
 │   └── synthetic_defect_generator.py # Procedural defect generator for pencils
 └── README.md
 ```
+
