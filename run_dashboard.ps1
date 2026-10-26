@@ -6,4 +6,4 @@ Write-Host "========================================================" -Foregroun
 Write-Host "  Launching Toothbrush Quality Inspection AI Dashboard..." -ForegroundColor Green
 Write-Host "========================================================" -ForegroundColor Cyan
 
-& ".\.venv\Scripts\streamlit.exe" run app.py
+& ".\.venv\Scripts\streamlit.exe" run app.py --server.headless true --browser.gatherUsageStats false

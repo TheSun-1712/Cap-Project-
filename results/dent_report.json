@@ -1,0 +1,74 @@
+{
+  "reference_file": "0101BA302380N_010 XYZ.stp",
+  "test_file": "samples_3d/part_with_dent.stl",
+  "tolerance_mm": 0.2,
+  "operational_verdict": "FAIL",
+  "metrology": {
+    "max_deviation_mm": 0.7132965384444163,
+    "max_positive_mm": 0.7132965384444163,
+    "max_negative_mm": -0.6929006177552612,
+    "rmse_mm": 0.04184073086100135,
+    "mae_mm": 0.01226882751951092,
+    "defect_ratio_pct": 0.8675,
+    "surface_verdict": "FAIL",
+    "failure_reasons": [
+      "Peak deviation (0.713 mm) exceeds allowable peak limit (0.500 mm)"
+    ]
+  },
+  "gdt_features": [
+    {
+      "name": "Countersunk Hole #1 Diameter",
+      "nominal": 7.0,
+      "measured": 10.51,
+      "deviation": 3.51,
+      "tolerance": 0.15,
+      "verdict": "FAIL"
+    },
+    {
+      "name": "Countersunk Hole #2 Diameter",
+      "nominal": 7.0,
+      "measured": 10.22,
+      "deviation": 3.2200000000000006,
+      "tolerance": 0.15,
+      "verdict": "FAIL"
+    },
+    {
+      "name": "Hole-to-Hole Fastener Pitch",
+      "nominal": 20.0,
+      "measured": 20.01,
+      "deviation": 0.010000000000001563,
+      "tolerance": 0.1,
+      "verdict": "PASS"
+    },
+    {
+      "name": "Cylindrical Boss Inner Diameter",
+      "nominal": 20.0,
+      "measured": 20.19,
+      "deviation": 0.19000000000000128,
+      "tolerance": 0.25,
+      "verdict": "PASS"
+    },
+    {
+      "name": "Cylindrical Boss Outer Diameter",
+      "nominal": 26.0,
+      "measured": 26.29,
+      "deviation": 0.28999999999999915,
+      "tolerance": 0.25,
+      "verdict": "FAIL"
+    }
+  ],
+  "defect_clusters": [
+    {
+      "cluster_id": 1,
+      "type": "DENT / MATERIAL UNDERFILL",
+      "peak_mm": 0.7132965384444163,
+      "mean_mm": -0.3410604497778138,
+      "area_mm2": 63.3,
+      "world_centroid": [
+        1610.6904322931603,
+        -569.2687946948832,
+        1137.6646274022003
+      ]
+    }
+  ]
+}

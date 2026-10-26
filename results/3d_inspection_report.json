@@ -1,0 +1,100 @@
+{
+  "reference_file": "0101BA302380N_010 XYZ.stp",
+  "test_file": "samples_3d/golden_part.stl",
+  "tolerance_mm": 0.2,
+  "operational_verdict": "PASS",
+  "metrology": {
+    "max_deviation_mm": 0.25437076559933797,
+    "max_positive_mm": 0.7055351236099252,
+    "max_negative_mm": -0.7180182578668511,
+    "rmse_mm": 0.029192410878497915,
+    "mae_mm": 0.008579429621066321,
+    "defect_ratio_pct": 0.2875,
+    "surface_verdict": "PASS",
+    "failure_reasons": []
+  },
+  "gdt_features": [
+    {
+      "name": "Countersunk Hole #1 Pilot Dia",
+      "nominal": 7.0,
+      "measured": 7.05,
+      "deviation": 0.04999999999999982,
+      "tolerance": 0.15,
+      "verdict": "PASS"
+    },
+    {
+      "name": "Countersunk Hole #1 Top Bevel",
+      "nominal": 11.2,
+      "measured": 11.01,
+      "deviation": -0.1899999999999995,
+      "tolerance": 0.4,
+      "verdict": "PASS"
+    },
+    {
+      "name": "Countersunk Hole #2 Pilot Dia",
+      "nominal": 7.0,
+      "measured": 6.91,
+      "deviation": -0.08999999999999986,
+      "tolerance": 0.15,
+      "verdict": "PASS"
+    },
+    {
+      "name": "Countersunk Hole #2 Top Bevel",
+      "nominal": 11.2,
+      "measured": 11.16,
+      "deviation": -0.03999999999999915,
+      "tolerance": 0.4,
+      "verdict": "PASS"
+    },
+    {
+      "name": "Hole-to-Hole Fastener Pitch",
+      "nominal": 20.0,
+      "measured": 20.01,
+      "deviation": 0.010000000000001563,
+      "tolerance": 0.1,
+      "verdict": "PASS"
+    },
+    {
+      "name": "Cylindrical Boss Inner Diameter",
+      "nominal": 20.0,
+      "measured": 20.32,
+      "deviation": 0.3200000000000003,
+      "tolerance": 0.35,
+      "verdict": "PASS"
+    },
+    {
+      "name": "Cylindrical Boss Outer Diameter",
+      "nominal": 26.0,
+      "measured": 26.05,
+      "deviation": 0.05000000000000071,
+      "tolerance": 0.35,
+      "verdict": "PASS"
+    }
+  ],
+  "defect_clusters": [
+    {
+      "cluster_id": 2,
+      "type": "BURR / MATERIAL EXCESS",
+      "peak_mm": 0.6708159313892781,
+      "mean_mm": 0.17272227880331598,
+      "area_mm2": 6.3,
+      "world_centroid": [
+        1608.6709635874868,
+        -571.6411049522272,
+        1132.4477142080182
+      ]
+    },
+    {
+      "cluster_id": 1,
+      "type": "HOLE DEFORMATION",
+      "peak_mm": 0.5747427956221037,
+      "mean_mm": -0.338954342751587,
+      "area_mm2": 3.0,
+      "world_centroid": [
+        1608.502618217341,
+        -569.5602091976816,
+        1088.9207300931791
+      ]
+    }
+  ]
+}

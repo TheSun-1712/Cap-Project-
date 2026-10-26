@@ -16,17 +16,16 @@ import numpy as np
 from PIL import Image
 import streamlit as st
 
-# Add workspace to path
-sys.path.append(str(Path(__file__).resolve().parent))
-from scripts.inference_engine import ToothbrushInspector
-
-# Configure Page
+# Configure Page immediately for instant UI render
 st.set_page_config(
     page_title="Toothbrush Quality Inspection AI",
     page_icon="🪥",
     layout="wide",
     initial_sidebar_state="expanded",
 )
+
+# Add workspace to path
+sys.path.append(str(Path(__file__).resolve().parent))
 
 # Custom High-End Industrial Dark Theme CSS
 st.markdown("""
@@ -184,12 +183,34 @@ st.markdown("""
 
 
 @st.cache_resource(show_spinner="⚡ Initializing Toothbrush PatchCore GPU Engine...")
-def load_inspector() -> ToothbrushInspector:
+def load_inspector():
     """Load model once into GPU VRAM."""
+    from scripts.inference_engine import ToothbrushInspector
     return ToothbrushInspector()
 
 
 def main():
+    # ==========================
+    # TOP-LEVEL MODALITY SWITCH
+    # ==========================
+    with st.sidebar:
+        st.markdown("### 🔍 Inspection Modality")
+        modality = st.radio(
+            "Select Inspection System:",
+            [
+                "🧊 3D CAD Metrology (CATIA AP203)",
+                "📷 2D Optical Inspection (PatchCore AOI)",
+            ],
+            index=0,
+            help="Switch between 3D volumetric CAD metrology and 2D multi-view optical inspection.",
+        )
+        st.markdown("---")
+
+    if modality == "🧊 3D CAD Metrology (CATIA AP203)":
+        from scripts.ui_3d_inspector import render_3d_inspection_tab
+        render_3d_inspection_tab()
+        return
+
     inspector = load_inspector()
 
     # Pre-defined test sample catalog
@@ -249,7 +270,7 @@ def main():
         # Tab: Choose input method
         input_source = st.radio(
             "Select Inspection Mode:",
-            ["📤 Upload My Toothbrush Image", "🧪 Test Sample Presets"],
+            ["🧪 Test Sample Presets", "📤 Upload My Toothbrush Image"],
             index=0,
         )
 

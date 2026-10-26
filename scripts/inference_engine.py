@@ -17,7 +17,10 @@ import torch
 import torchvision.transforms.v2 as T
 from PIL import Image
 
-from anomalib.models import Patchcore
+try:
+    from anomalib.models.image.patchcore.lightning_model import Patchcore
+except ImportError:
+    from anomalib.models import Patchcore
 
 # Enable Blackwell GPU coreset speedup if needed
 try:
